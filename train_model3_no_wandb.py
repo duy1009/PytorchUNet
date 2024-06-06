@@ -1,6 +1,6 @@
 import argparse
 import logging
-import os, wandb
+import os
 import random
 import sys
 import torch
@@ -76,16 +76,6 @@ def train_model(
     criterion = nn.CrossEntropyLoss() if model.n_classes > 1 else nn.BCEWithLogitsLoss()
     global_step = 0
 
-    wandb.init(project="Unet_small",
-               name="ex1",
-               config={
-                   "learning_rate":learning_rate,
-                   "epochs" : epochs,
-                   "batch_size" : batch_size,
-                   "imgsz":imgsz
-               }
-               )
-    
     # 5. Begin training
     for epoch in range(1, epochs + 1):
         model.train()
@@ -145,10 +135,7 @@ def train_model(
             # torch.save(state_dict, str(dir_checkpoint / 'checkpoint_epoch{}.pth'.format(epoch)))
             torch.save(state_dict, str(dir_checkpoint / 'checkpoint.pth'))
             logging.info(f'Checkpoint {epoch} saved!')
-        wandb.log({"Loss train": epoch_loss,
-                   "Validation Dice score": val_score
-                   })
-    wandb.finish()
+
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')

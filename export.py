@@ -3,7 +3,7 @@ import sys,os, cv2
 sys.path.append(os.path.dirname(__file__))
 from unet import UNet, UNetNano, UNetSmall
 
-MODEL_PATH = r"/home/hungdv/tcgroup/extractTable/PytorchUNet/checkpoints/checkpoint_150.pth"
+MODEL_PATH = r"/home/hungdv/tcgroup/extractTable/PytorchUNet/checkpoints/checkpoint_s50.pth"
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 try:

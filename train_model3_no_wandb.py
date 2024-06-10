@@ -1,20 +1,17 @@
 import argparse
 import logging
 import os
-import random
-import sys
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.transforms as transforms
-import torchvision.transforms.functional as TF
 from pathlib import Path
 from torch import optim
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 
 from evaluate import evaluate
-from unet import UNetSmall
+from unet import UNetSmall, UNetNano, UNet
 from utils.data_loading_model3 import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
@@ -126,6 +123,7 @@ def train_model(
             scheduler.step(val_score)
 
             logging.info('Validation Dice score: {}'.format(val_score))
+            print('Validation Dice score: {}'.format(val_score))
 
 
         if save_checkpoint:
@@ -151,7 +149,7 @@ def get_args():
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
     parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
     parser.add_argument('--classes', '-c', type=int, default=2, help='Number of classes')
-
+    parser.add_argument('--model_type', '-t', type=int, default=2, help='0: basis, 1:small, 2: nano')
     return parser.parse_args()
 
 
@@ -165,7 +163,12 @@ if __name__ == '__main__':
     # Change here to adapt to your data
     # n_channels=3 for RGB images
     # n_classes is the number of probabilities you want to get per pixel
-    model = UNetSmall(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    if args.model_type == 1:
+        model = UNetSmall(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    elif args.model_type == 2:
+        model = UNetNano(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
+    else:
+        model = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
     print("Total params:", sum(p.numel() for p in model.parameters()))
     model = model.to(memory_format=torch.channels_last)
 
@@ -179,7 +182,6 @@ if __name__ == '__main__':
         del state_dict['mask_values']
         model.load_state_dict(state_dict)
         logging.info(f'Model loaded from {args.load}')
-    
     model.to(device=device)
     try:
         train_model(

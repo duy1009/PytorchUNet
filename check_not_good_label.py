@@ -5,8 +5,8 @@ import cv2, glob, shutil
 import numpy as np
 from os.path import splitext, basename, join
 from os import makedirs
-image_dir = "/home/hungdv/tcgroup/dataset/tabelSeg/Scitsr_aug_full_3/images"
-label_dir = "/home/hungdv/tcgroup/dataset/tabelSeg/Scitsr_aug_full_3/labels"
+image_dir = "/home/hungdv/tcgroup/dataset/tabelSeg/Scitsr_aug_full_3/test/images"
+label_dir = "/home/hungdv/tcgroup/dataset/tabelSeg/Scitsr_aug_full_3/test/labels"
 
 paths = glob.glob(image_dir+"/**")
 
@@ -20,7 +20,7 @@ from utils.data_loading import BasicDataset
 
 from unet import UNet, UNetNano, UNetSmall
 
-MODEL_PATH = "/home/hungdv/tcgroup/extractTable/checkpoints/checkpoint_s42_5.pth"
+MODEL_PATH = "/home/hungdv/Downloads/checkpoint_s57_5.pth"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -92,19 +92,35 @@ def loadlabel(labelpath):
 
 try:
     makedirs("./test/false")
+    makedirs("./test/true")
 except:
     pass
 
-for file in paths:
+s_score = 0
+bad = 0
+good = 0
+for i, file in enumerate(paths):
     image = Image.open(file).convert("RGB")
     mask_pred = predict_img(image)
     mask_true = loadlabel(join(label_dir, basename(file)[:-4]+".png"))
     score = dice_coeff(mask_pred, mask_true)
-    print(score)
+    s_score+=score
     if score < 0.8:
         shutil.copyfile(file, "./test/false/"+basename(file))
+        bad+=1
+    elif score > 0.98:
+        shutil.copyfile(file, "./test/true/"+basename(file))
+        good+=1
     img = cv2.imread(file)
-    cv2.imshow("a", mask_pred.numpy().astype(np.uint8)*255)
-    cv2.imshow("b", img)
-    cv2.waitKey(1)
+    # cv2.imshow("a", mask_pred.numpy().astype(np.uint8)*255)
+    # cv2.imshow("b", img)
+    # cv2.waitKey(1)
+    print("\n[Result]")
+    print(f"- Dice score avg: {s_score/(i+1)}")
+    print(f"- Bad labels: {bad/len(paths)} ({bad}/{i+1})")
+    print(f"- Good labels: {good/len(paths)} ({good}/{i+1})")
     
+print("\n[Result]")
+print(f"- Dice score avg: {s_score/len(paths)}")
+print(f"- Bad labels: {bad/len(paths)} ({bad}/{len(paths)})")
+print(f"- Good labels: {good/len(paths)} ({good}/{len(paths)})")
